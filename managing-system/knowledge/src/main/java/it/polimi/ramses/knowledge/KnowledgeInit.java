@@ -4,6 +4,8 @@ import it.polimi.ramses.knowledge.domain.architecture.Instance;
 import it.polimi.ramses.knowledge.domain.architecture.InstanceStatus;
 import it.polimi.ramses.knowledge.domain.architecture.ServiceConfiguration;
 import it.polimi.ramses.knowledge.domain.persistence.ConfigurationRepository;
+import it.polimi.ramses.knowledge.domain.persistence.Vulnerability;
+import it.polimi.ramses.knowledge.domain.persistence.VulnerabilityRepository;
 import it.polimi.ramses.knowledge.externalinterfaces.ProbeClient;
 import it.polimi.ramses.knowledge.externalinterfaces.ServiceInfo;
 import it.polimi.ramses.knowledge.parser.QoSParser;
@@ -12,6 +14,7 @@ import it.polimi.ramses.knowledge.parser.SystemBenchmarkParser;
 import it.polimi.ramses.knowledge.domain.KnowledgeService;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.QoSSpecification;
 import it.polimi.ramses.knowledge.domain.architecture.Service;
+import it.polimi.ramses.knowledge.parser.VulnerabilityParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +37,8 @@ public class KnowledgeInit implements InitializingBean {
     private ProbeClient probeClient;
     @Autowired
     private Environment environment;
+    @Autowired
+    private VulnerabilityRepository vulnerabilityRepository;
 
 
     @Override
@@ -49,6 +54,12 @@ public class KnowledgeInit implements InitializingBean {
         Map<String, List<QoSSpecification>> servicesQoS = QoSParser.parse(qoSReader);
         FileReader benchmarkReader = new FileReader(ResourceUtils.getFile(configDirPath+"/system_benchmarks.json"));
         Map<String, List<SystemBenchmarkParser.ServiceImplementationBenchmarks>> servicesBenchmarks = SystemBenchmarkParser.parse(benchmarkReader);
+
+        FileReader vulnerabilitiesReader = new FileReader(ResourceUtils.getFile(configDirPath+"/vulnerabilities.json"));
+        Map<String, List<Vulnerability>> servicesVulnerabilities = VulnerabilityParser.parse(vulnerabilitiesReader, serviceList);
+        vulnerabilityRepository.deleteAll();
+        log.info("Saving {} vulnerabilities", servicesVulnerabilities.values().stream().mapToInt(List::size).sum());
+        servicesVulnerabilities.forEach((serviceId, vulnerabilities) -> vulnerabilityRepository.saveAll(vulnerabilities));
 
         Map<String, ServiceInfo> probeSystemRuntimeArchitecture = probeClient.getSystemArchitecture();
 

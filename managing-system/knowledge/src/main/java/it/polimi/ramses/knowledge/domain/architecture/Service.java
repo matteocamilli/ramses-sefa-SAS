@@ -21,6 +21,8 @@ public class Service {
     private Map<String, ServiceImplementation> possibleImplementations = new HashMap<>();
     // <QoS class, QoSSpecification>
     private Map<Class<? extends QoSSpecification>, QoSSpecification> qoSSpecifications = new HashMap<>();
+    @Getter
+    private double currentVulnerabilityScore;
     @Setter
     private Date latestAdaptationDate = new Date();
 
@@ -181,4 +183,5 @@ public class Service {
                 (qoSSpecifications.size() == 0 ? "" : "\tQoS: " + qoSSpecifications.values() + "\n" +
                         "\tInstances: " + getInstances().stream().map(Instance::getInstanceId).reduce((s1, s2) -> s1 + ", " + s2).orElse("[]"));
     }
+
 }
