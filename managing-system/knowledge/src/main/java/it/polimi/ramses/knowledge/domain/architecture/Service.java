@@ -21,8 +21,6 @@ public class Service {
     private Map<String, ServiceImplementation> possibleImplementations = new HashMap<>();
     // <QoS class, QoSSpecification>
     private Map<Class<? extends QoSSpecification>, QoSSpecification> qoSSpecifications = new HashMap<>();
-    @Getter
-    private double currentVulnerabilityScore;
     @Setter
     private Date latestAdaptationDate = new Date();
 
@@ -128,6 +126,10 @@ public class Service {
     @JsonIgnore
     public ServiceImplementation getCurrentImplementation() {
         return possibleImplementations.get(currentImplementationId);
+    }
+
+    public double getCurrentVulnerabilityScore() {
+        return getCurrentImplementation().getVulnerabilityScore();
     }
 
     public void setAllQoS(List<QoSSpecification> specs) {

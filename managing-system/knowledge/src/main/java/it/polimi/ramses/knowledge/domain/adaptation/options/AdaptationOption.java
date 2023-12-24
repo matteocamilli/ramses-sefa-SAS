@@ -32,7 +32,6 @@ public abstract class AdaptationOption {
     private String serviceImplementationId;
     private String comment;
     private Class<? extends QoSSpecification> qosGoal;
-    private double vulnerabilityScore = 0.0;
 
     private boolean forced = false;
 

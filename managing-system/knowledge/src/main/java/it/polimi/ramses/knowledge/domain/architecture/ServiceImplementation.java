@@ -1,6 +1,7 @@
 package it.polimi.ramses.knowledge.domain.architecture;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import it.polimi.ramses.knowledge.domain.adaptation.specifications.Vulnerability;
 import it.polimi.ramses.knowledge.domain.adaptation.values.QoSCollection;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.QoSSpecification;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,7 @@ public class ServiceImplementation {
     private int trust;
     private int penalty = 0;
     private double instanceLoadShutdownThreshold;
+    private double vulnerabilityScore;
 
     public ServiceImplementation(String implementationId, double preference, int trust, double instanceLoadShutdownThreshold) {
         this.implementationId = implementationId;
@@ -72,9 +74,14 @@ public class ServiceImplementation {
             throw new RuntimeException("Instance already exists");
         Instance instance = new Instance(instanceId, serviceId);
         for (QoSSpecification specification : qoSSpecifications) {
+            // Vulnerability is a different kind of QoS
+            if (specification.getClass().equals(Vulnerability.class))
+                continue;
             instance.getQoSCollection().createHistory(specification);
             instance.getQoSCollection().changeCurrentValueForQoS(specification.getClass(), getBenchmark(specification.getClass()), new Date());
         }
+        instance.setVulnerabilityScore(vulnerabilityScore);
+
         instances.put(instanceId, instance);
         return instance;
     }

@@ -48,17 +48,27 @@ public class KnowledgeInit implements InitializingBean {
             configDirPath = Paths.get("").toAbsolutePath().toString();
             log.warn("No configuration path specified. Using current working directory: {}", configDirPath);
         }
-        FileReader architectureReader = new FileReader(ResourceUtils.getFile(configDirPath+"/system_architecture.json"));
+        FileReader architectureReader = new FileReader(ResourceUtils.getFile(configDirPath + "/system_architecture.json"));
         List<Service> serviceList = SystemArchitectureParser.parse(architectureReader);
-        FileReader qoSReader = new FileReader(ResourceUtils.getFile(configDirPath+"/qos_specification.json"));
+        FileReader qoSReader = new FileReader(ResourceUtils.getFile(configDirPath + "/qos_specification.json"));
         Map<String, List<QoSSpecification>> servicesQoS = QoSParser.parse(qoSReader);
-        FileReader benchmarkReader = new FileReader(ResourceUtils.getFile(configDirPath+"/system_benchmarks.json"));
+        FileReader benchmarkReader = new FileReader(ResourceUtils.getFile(configDirPath + "/system_benchmarks.json"));
         Map<String, List<SystemBenchmarkParser.ServiceImplementationBenchmarks>> servicesBenchmarks = SystemBenchmarkParser.parse(benchmarkReader);
-
-        FileReader vulnerabilitiesReader = new FileReader(ResourceUtils.getFile(configDirPath+"/vulnerabilities.json"));
+        FileReader vulnerabilitiesReader = new FileReader(ResourceUtils.getFile(configDirPath + "/vulnerabilities.json"));
         Map<String, List<Vulnerability>> servicesVulnerabilities = VulnerabilityParser.parse(vulnerabilitiesReader, serviceList);
+
+        // Compute the vulnerability score for each service implementation
+        serviceList.forEach(service ->
+                service.getPossibleImplementations().forEach((serviceImplementationId, serviceImplementation) -> {
+                    List<Vulnerability> vulnerabilities = servicesVulnerabilities.get(serviceImplementationId);
+                    // TODO compute the score not as the sum of the scores
+                    double score = vulnerabilities.stream().mapToDouble(Vulnerability::getScore).sum();
+                    log.info("Service {} implementation {} vulnerability score: {}", service.getServiceId(), serviceImplementationId, score);
+                    serviceImplementation.setVulnerabilityScore(score);
+                }));
+
+        // Save vulnerabilities in the database
         vulnerabilityRepository.deleteAll();
-        log.info("Saving {} vulnerabilities", servicesVulnerabilities.values().stream().mapToInt(List::size).sum());
         servicesVulnerabilities.forEach((serviceId, vulnerabilities) -> vulnerabilityRepository.saveAll(vulnerabilities));
 
         Map<String, ServiceInfo> probeSystemRuntimeArchitecture = probeClient.getSystemArchitecture();
@@ -68,7 +78,7 @@ public class KnowledgeInit implements InitializingBean {
             if (serviceInfo == null)
                 throw new RuntimeException("Service " + service.getServiceId() + " not found in the system  runtime architecture");
             List<String> instances = serviceInfo.getInstances();
-            if (instances == null || instances.isEmpty()){
+            if (instances == null || instances.isEmpty()) {
                 throw new RuntimeException("No instances found for service " + service.getServiceId());
             }
             service.setCurrentImplementationId(serviceInfo.getCurrentImplementationId());
@@ -94,7 +104,7 @@ public class KnowledgeInit implements InitializingBean {
             if (configuration.getLoadBalancerType() != null && configuration.getLoadBalancerType().equals(ServiceConfiguration.LoadBalancerType.WEIGHTED_RANDOM)) {
                 if (configuration.getLoadBalancerWeights() == null) {
                     for (Instance instance : service.getInstances())
-                        configuration.addLoadBalancerWeight(instance.getInstanceId(), 1.0/service.getInstances().size());
+                        configuration.addLoadBalancerWeight(instance.getInstanceId(), 1.0 / service.getInstances().size());
                 } else if (!configuration.getLoadBalancerWeights().keySet().equals(service.getCurrentImplementation().getInstances().keySet())) {
                     throw new RuntimeException("Service " + service.getServiceId() + " has a load balancer weights map with different keys than the current implementation instances");
                 }

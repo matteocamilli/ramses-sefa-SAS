@@ -19,6 +19,7 @@ public class Instance {
     private String instanceId; //service implementation id @ ip : port
     private String serviceId; //serviceId
     private String serviceImplementationId; //service implementation id
+    private double vulnerabilityScore;
     private InstanceStatus currentStatus;
     private QoSCollection qoSCollection;
     private InstanceMetricsSnapshot latestInstanceMetricsSnapshot;
