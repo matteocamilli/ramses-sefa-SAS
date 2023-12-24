@@ -1,11 +1,11 @@
 package it.polimi.ramses.plan.domain;
 
-import com.google.ortools.linearsolver.*;
 import it.polimi.ramses.knowledge.domain.Modules;
 import it.polimi.ramses.knowledge.domain.adaptation.options.*;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.QoSSpecification;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.Availability;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.AverageResponseTime;
+import it.polimi.ramses.knowledge.domain.adaptation.specifications.Vulnerability;
 import it.polimi.ramses.knowledge.domain.architecture.*;
 import it.polimi.ramses.plan.externalInterfaces.ExecuteClient;
 import it.polimi.ramses.plan.externalInterfaces.KnowledgeClient;
@@ -54,7 +54,7 @@ public class PlanService {
                             log.debug("Proposed option: {}", option.getDescription());
                             if (option.getClass().equals(ChangeLoadBalancerWeightsOption.class)) {
                                 ChangeLoadBalancerWeightsOption changeLoadBalancerWeightsOption = (ChangeLoadBalancerWeightsOption) option;
-                                Map<String, Double> newWeights = handleChangeLoadBalancerWeights(servicesMap.get(option.getServiceId()));
+                                /*Map<String, Double> newWeights = handleChangeLoadBalancerWeights(servicesMap.get(option.getServiceId()));
                                 if (newWeights != null) { // If it's null it means that the problem has no solution
                                     List<String> instancesToShutdownIds = new LinkedList<>();
                                     newWeights.forEach((instanceId, weight) -> {
@@ -65,7 +65,7 @@ public class PlanService {
                                     instancesToShutdownIds.forEach(newWeights::remove);
                                     changeLoadBalancerWeightsOption.setNewWeights(newWeights);
                                     changeLoadBalancerWeightsOption.setInstancesToShutdownIds(instancesToShutdownIds);
-                                }
+                                }*/
                             }
                             if (option.getClass().equals(AddInstanceOption.class))
                                 handleAddInstance((AddInstanceOption) option, servicesMap.get(option.getServiceId()));
@@ -182,7 +182,7 @@ public class PlanService {
         return addInstanceOption;
     }
 
-    public Map<String, Double> handleChangeLoadBalancerWeights(Service service) {
+    /*public Map<String, Double> handleChangeLoadBalancerWeights(Service service) {
         Map<String, Double> previousWeights = service.getLoadBalancerWeights();
         double shutdownThreshold = service.getCurrentImplementation().getInstanceLoadShutdownThreshold() / service.getInstances().size();
         double defaultWeight = 1.0 / service.getInstances().size();
@@ -320,7 +320,7 @@ public class PlanService {
         log.debug(sb.toString());
 
         return newWeights;
-    }
+    }*/
 
     public ChangeImplementationOption handleChangeImplementation(ChangeImplementationOption changeImplementationOption, Service service){
         String bestImplementationId = null;
@@ -328,8 +328,8 @@ public class PlanService {
         for (String implementationId: changeImplementationOption.getPossibleImplementations()) {
             Class<? extends QoSSpecification> goal = changeImplementationOption.getQosGoal();
             ServiceImplementation implementation = service.getPossibleImplementations().get(implementationId);
-            double benchmark = implementation.getBenchmark(changeImplementationOption.getQosGoal());
             if (Availability.class == goal) {
+                double benchmark = implementation.getBenchmark(changeImplementationOption.getQosGoal());
                 benchmark = benchmark * implementation.getPreference();
                 if (bestImplementationId == null) {
                     bestImplementationId = implementationId;
@@ -340,6 +340,7 @@ public class PlanService {
                     bestImplementationBenefit = benchmark;
                 }
             } else if(AverageResponseTime.class == goal) {
+                double benchmark = implementation.getBenchmark(changeImplementationOption.getQosGoal());
                 benchmark = benchmark / implementation.getPreference();
                 if (bestImplementationId == null) {
                     bestImplementationId = implementationId;
@@ -348,6 +349,16 @@ public class PlanService {
                 if (benchmark < bestImplementationBenefit) {
                     bestImplementationId = implementationId;
                     bestImplementationBenefit = benchmark;
+                }
+            } else if(Vulnerability.class == goal) {
+                double vulnerabilityScore = implementation.getVulnerabilityScore();
+                if (bestImplementationId == null) {
+                    bestImplementationId = implementationId;
+                    bestImplementationBenefit = vulnerabilityScore;
+                }
+                if (vulnerabilityScore < bestImplementationBenefit) {
+                    bestImplementationId = implementationId;
+                    bestImplementationBenefit = vulnerabilityScore;
                 }
             }
         }
@@ -471,6 +482,16 @@ public class PlanService {
                     benefits.put(AverageResponseTime.class, newBenefit);
                     bestOptionForGoal.put(AverageResponseTime.class, adaptationOption);
                 }
+            } else if (adaptationOption.getQosGoal() == Vulnerability.class && (ChangeImplementationOption.class.equals(adaptationOption.getClass()))) {
+                    ChangeImplementationOption changeImplementationOption = (ChangeImplementationOption) adaptationOption;
+                    double vulnerabilityScore = service.getPossibleImplementations().get(changeImplementationOption.getNewImplementationId()).getVulnerabilityScore();
+                    double newBenefit = service.getCurrentVulnerabilityScore() / vulnerabilityScore;
+                    log.debug(service.getServiceId() + ": " + adaptationOption.getClass().getSimpleName() + " option for Vulnerability. BENEFIT: " + newBenefit);
+                    if (newBenefit > 1 && (!benefits.containsKey(Vulnerability.class) || newBenefit > benefits.get(Vulnerability.class))) {
+                        benefits.put(Vulnerability.class, newBenefit);
+                        bestOptionForGoal.put(Vulnerability.class, adaptationOption);
+                    }
+
             }
         }
 
