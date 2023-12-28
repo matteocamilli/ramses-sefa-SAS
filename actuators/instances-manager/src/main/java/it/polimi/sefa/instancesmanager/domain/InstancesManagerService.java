@@ -95,20 +95,35 @@ public class InstancesManagerService {
             Ports portBindings = new Ports();
             portBindings.bind(serverPort, Ports.Binding.bindIpAndPort("0.0.0.0", randomPort));
             List<String> envVars = buildContainerEnvVariables(randomPort, simulationInstanceParamsList.get(i % simulationInstanceParamsList.size()));
+
+            String containerName = imageName;
+            if (containerName.contains(":"))
+                containerName = containerName.substring(0, containerName.indexOf(":"));
+            if (containerName.contains("/"))
+                containerName = containerName.substring(containerName.indexOf("/")+1);
+            containerName += "_" + randomPort;
+
             String newContainerId = dockerClient.createContainerCmd(imageName)
-                    .withName(imageName + "_" + randomPort)
+                    .withName(containerName)
                     .withEnv(envVars)
                     .withExposedPorts(serverPort)
                     .withHostConfig(newHostConfig().withPortBindings(portBindings))
                     .exec().getId();
             dockerClient.startContainerCmd(newContainerId).exec();
-            serviceContainerInfos.add(new ServiceContainerInfo(imageName, newContainerId, imageName + "_" + randomPort, dockerIp, randomPort, envVars));
+            serviceContainerInfos.add(new ServiceContainerInfo(imageName, newContainerId, containerName, dockerIp, randomPort, envVars));
         }
         return serviceContainerInfos;
     }
 
     public void startInstance(String serviceImplementationName, int port) {
-        List<Container> containers = dockerClient.listContainersCmd().withShowAll(true).withNameFilter(Collections.singleton(serviceImplementationName+"_"+port)).exec();
+        String containerName = serviceImplementationName;
+        if (containerName.contains(":"))
+            containerName = containerName.substring(0, containerName.indexOf(":"));
+        if (containerName.contains("/"))
+            containerName = containerName.substring(containerName.indexOf("/")+1);
+        containerName += "_" + port;
+
+        List<Container> containers = dockerClient.listContainersCmd().withShowAll(true).withNameFilter(Collections.singleton(containerName)).exec();
         if (containers.size() == 1) {
             Container container = containers.get(0);
             try {
@@ -118,14 +133,21 @@ public class InstancesManagerService {
             }
             return;
         } else if (containers.size() == 0){
-            log.warn("Container {}_{} not found. Considering it as crashed.", serviceImplementationName, port);
+            log.warn("Container {} not found. Considering it as crashed.", containerName);
             return;
         }
         throw new RuntimeException("Too many containers found: " + containers);
     }
 
     public void stopInstance(String serviceImplementationName, int port) {
-        List<Container> containers = dockerClient.listContainersCmd().withNameFilter(Collections.singleton(serviceImplementationName+"_"+port)).exec();
+        String containerName = serviceImplementationName;
+        if (containerName.contains(":"))
+            containerName = containerName.substring(0, containerName.indexOf(":"));
+        if (containerName.contains("/"))
+            containerName = containerName.substring(containerName.indexOf("/")+1);
+        containerName += "_" + port;
+
+        List<Container> containers = dockerClient.listContainersCmd().withNameFilter(Collections.singleton(containerName)).exec();
         if (containers.size() == 1) {
             Container container = containers.get(0);
             try {
@@ -135,7 +157,7 @@ public class InstancesManagerService {
             }
             return;
         } else if (containers.size() == 0){
-            log.warn("Container {}_{} not found. Considering it as crashed.", serviceImplementationName, port);
+            log.warn("Container {} not found. Considering it as crashed.", containerName, port);
             return;
         }
         throw new RuntimeException("Too many containers found: " + containers);
