@@ -5,13 +5,18 @@
 			"qos" : [
 				{
 					"name" : "availability",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"min_threshold" : 0.9
 				},
 				{
 					"name" : "average_response_time",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"max_threshold": 90
+				},
+				{
+					"name" : "vulnerability",
+					"weight" : 0.4,
+					"max_threshold": 10
 				}
 			]
 		},
@@ -20,13 +25,18 @@
 			"qos" : [
 				{
 					"name" : "availability",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"min_threshold" : 0.87
 				},
 				{
 					"name" : "average_response_time",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"max_threshold": 800
+				},
+				{
+					"name" : "vulnerability",
+					"weight" : 0.4,
+					"max_threshold": 10
 				}
 			]
 		},
@@ -35,13 +45,18 @@
 			"qos" : [
 				{
 					"name" : "availability",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"min_threshold" : 0.92
 				},
 				{
 					"name" : "average_response_time",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"max_threshold": 500
+				},
+				{
+					"name" : "vulnerability",
+					"weight" : 0.4,
+					"max_threshold": 10
 				}
 			]
 		},
@@ -50,13 +65,18 @@
 			"qos" : [
 				{
 					"name" : "availability",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"min_threshold" : 0.92
 				},
 				{
 					"name" : "average_response_time",
-					"weight" : 0.5,
+					"weight" : 0.3,
 					"max_threshold": 500
+				},
+				{
+					"name" : "vulnerability",
+					"weight" : 0.4,
+					"max_threshold": 10
 				}
 			]
 		}

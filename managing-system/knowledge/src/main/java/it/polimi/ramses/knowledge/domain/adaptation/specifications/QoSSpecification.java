@@ -13,8 +13,8 @@ import java.util.List;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = Availability.class),
-        @JsonSubTypes.Type(value = AverageResponseTime.class)
-        //@JsonSubTypes.Type(value = MaxResponseTime.class),
+        @JsonSubTypes.Type(value = AverageResponseTime.class),
+        @JsonSubTypes.Type(value = Vulnerability.class)
         //@JsonSubTypes.Type(value = TotalCost.class)
 })
 @NoArgsConstructor

@@ -1,12 +1,121 @@
-buildscript { ext {
-	set('SPRING_BOOT_VERSION', '2.7.3')
-	set('SPRING_CLOUD_VERSION', '2021.0.3')
-	set('SPRING_DEPENDENCY_MANAGEMENT_VERSION', '1.0.13.RELEASE')
-}}
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+
+buildscript {
+	ext {
+		set('SPRING_BOOT_VERSION', '2.7.3')
+		set('SPRING_CLOUD_VERSION', '2021.0.3')
+		set('SPRING_DEPENDENCY_MANAGEMENT_VERSION', '1.0.13.RELEASE')
+	}
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath 'org.owasp:dependency-check-gradle:8.4.2'
+	}
+}
+
+abstract class ExtractVulnScores extends DefaultTask {
+	@Input
+	String jsonFilePath
+
+	@TaskAction
+	void analyzeDependencies() {
+		if (jsonFilePath == null) {
+			throw new IllegalArgumentException("Please provide the path to the JSON report file.")
+		}
+
+		if (!project.file(jsonFilePath).exists()) {
+			throw new IllegalArgumentException("JSON report file does not exist: $jsonFilePath")
+		}
+
+		// Read and parse the JSON report
+		def jsonSlurper = new JsonSlurper()
+		def report = jsonSlurper.parseText(project.file(jsonFilePath).text)
+
+		def subprojectReport = [:]
+
+		// Extract base scores of vulnerabilities for each dependency
+		def dependencies = report.dependencies
+		dependencies.each { dependency ->
+			if (dependency.vulnerabilities) {
+				def vulnerabilityReport = [:]
+				def baseScores = dependency.vulnerabilities.collect { it.cvssv3?.baseScore }
+				vulnerabilityReport[dependency.fileName] = baseScores
+				subprojectReport[project.name] = subprojectReport.getOrDefault(project.name, []) + vulnerabilityReport
+				println("Dependency: ${dependency.fileName}, Base Scores: $baseScores")
+			}
+		}
+
+		// Convert the map to JSON
+		def jsonBuilder = new JsonBuilder(subprojectReport)
+		def jsonContent = jsonBuilder.toPrettyString()
+
+		// Write the JSON content to a file
+		def outputJsonFile = new File("${project.buildDir}/vulnerability-scores.json")
+		outputJsonFile.text = jsonContent
+	}
+}
 
 plugins {
 	id "org.springframework.boot" version "${SPRING_BOOT_VERSION}"
 	id "io.spring.dependency-management" version "${SPRING_DEPENDENCY_MANAGEMENT_VERSION}"
+}
+
+allprojects {
+	apply plugin: 'org.owasp.dependencycheck'
+
+	dependencyCheck {
+		format='ALL'
+	}
+}
+
+tasks.register('mergeVulnScores', Copy) {
+	description = 'Merge vuln-scores reports from subprojects into a single report'
+	from subprojects.collect { project ->
+		project.file("${project.buildDir}/vulnerability-scores.json")
+	}
+	into project.buildDir
+	eachFile { fileCopyDetails ->
+		// Rename the file to include the subproject name
+		fileCopyDetails.path = "${fileCopyDetails.file.parentFile.parentFile.name}-${fileCopyDetails.name}"
+	}
+	includeEmptyDirs = false
+
+	doLast {
+		// Collect all the JSON files
+		def jsonFiles = fileTree(dir: project.buildDir, include: '**/*-vulnerability-scores.json').files
+
+		// Create a map to store the merged data
+		def mergedReport = [:]
+
+		// Merge the data from all subprojects
+		jsonFiles.each { jsonFile ->
+			def jsonSlurper = new JsonSlurper()
+			def subprojectData = jsonSlurper.parse(jsonFile)
+
+			// Merge the data into the main report
+			subprojectData.each { subprojectName, vulnerabilityData ->
+				// Ensure mergedReport[subprojectName] is a list to handle duplicates
+				mergedReport[subprojectName] = mergedReport.getOrDefault(subprojectName, []) + vulnerabilityData
+			}
+		}
+
+		// Convert the merged data to JSON
+		def jsonBuilder = new JsonBuilder(mergedReport)
+		def jsonContent = jsonBuilder.toPrettyString()
+
+		// Write the merged report to a file
+		def mergedJsonFile = new File("${project.buildDir}/merged-vulnerability-scores.json")
+		mergedJsonFile.text = jsonContent
+
+		println "Merged vuln-scores report saved to: ${mergedJsonFile}"
+	}
+}
+
+tasks.register('extractVulnScores') {
+	dependsOn dependencyCheckAnalyze
+	dependsOn subprojects.extractVulnScores
 }
 
 subprojects {
@@ -18,6 +127,10 @@ subprojects {
 
 	repositories {
 		mavenCentral()
+	}
+
+	tasks.register('extractVulnScores', ExtractVulnScores) {
+		jsonFilePath = "${project.buildDir}/reports/dependency-check-report.json"
 	}
 
 	if (project.name.endsWith("-service")) {

@@ -7,6 +7,7 @@ import it.polimi.ramses.knowledge.domain.Modules;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.QoSSpecification;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.Availability;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.AverageResponseTime;
+import it.polimi.ramses.knowledge.domain.adaptation.specifications.Vulnerability;
 import it.polimi.ramses.knowledge.domain.adaptation.values.QoSCollection;
 import it.polimi.ramses.knowledge.domain.adaptation.values.QoSHistory;
 import it.polimi.ramses.knowledge.domain.architecture.Instance;
@@ -349,6 +350,7 @@ public class AnalyseService {
         if (service.shouldConsiderChangingImplementation()) {
             proposedAdaptationOptions.add(createChangeImplementationOption(service, Availability.class));
             proposedAdaptationOptions.add(createChangeImplementationOption(service, AverageResponseTime.class));
+            proposedAdaptationOptions.add(createChangeImplementationOption(service, Vulnerability.class));
         }
 
         // If there are proposed adaptation options for the service, say that the service requires adaptation.

@@ -69,14 +69,14 @@ public class ExecuteService {
         Service service = knowledgeClient.getService(serviceId);
         if (!service.getCurrentImplementationId().equals(addInstanceOption.getServiceImplementationId()))
             throw new RuntimeException("Service implementation id mismatch. Expected: " + service.getCurrentImplementationId() + " Actual: " + addInstanceOption.getServiceImplementationId());
-        StartNewInstancesResponse instancesResponse = actuatorAddInstances(addInstanceOption.getServiceImplementationId(), 1);
+        StartNewInstancesResponse instancesResponse = actuatorAddInstances("sbi98/sefa-" + addInstanceOption.getServiceImplementationId() + ":amd64", 1);
 
         if (instancesResponse.getDockerizedInstances().isEmpty())
             throw new RuntimeException("No instances were added");
 
         String newInstancesAddress = instancesResponse.getDockerizedInstances().get(0).getAddress() + ":" + instancesResponse.getDockerizedInstances().get(0).getPort();
         String newInstanceId = service.createInstance(newInstancesAddress).getInstanceId();
-        log.info("Adding instance to service" + serviceId + " with new instance " + newInstanceId);
+        log.info("Adding instance to service " + serviceId + " with new instance " + newInstanceId);
         Map<String, Double> newWeights = addInstanceOption.getFinalWeights(newInstanceId);
         knowledgeClient.notifyAddInstance(new AddInstanceRequest(serviceId, newInstancesAddress));
         if (newWeights != null) {
@@ -135,7 +135,7 @@ public class ExecuteService {
         ServiceImplementation oldImplementation = service.getCurrentImplementation();
 
         // Start new instances of the new implementation
-        StartNewInstancesResponse instancesResponse = instancesManagerClient.addInstances(new StartNewInstancesRequest(changeImplementationOption.getNewImplementationId(), changeImplementationOption.getNumberOfInstances()));
+        StartNewInstancesResponse instancesResponse = instancesManagerClient.addInstances(new StartNewInstancesRequest("sbi98/sefa-" + changeImplementationOption.getNewImplementationId() + ":amd64", changeImplementationOption.getNumberOfInstances()));
         if (instancesResponse.getDockerizedInstances().isEmpty())
             throw new RuntimeException("No instances were added");
 

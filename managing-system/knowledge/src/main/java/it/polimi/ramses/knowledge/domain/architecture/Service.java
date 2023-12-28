@@ -128,6 +128,10 @@ public class Service {
         return possibleImplementations.get(currentImplementationId);
     }
 
+    public double getCurrentVulnerabilityScore() {
+        return getCurrentImplementation().getVulnerabilityScore();
+    }
+
     public void setAllQoS(List<QoSSpecification> specs) {
         for (ServiceImplementation impl : possibleImplementations.values()) {
             impl.setAllQoSSpecifications(specs);
@@ -181,4 +185,5 @@ public class Service {
                 (qoSSpecifications.size() == 0 ? "" : "\tQoS: " + qoSSpecifications.values() + "\n" +
                         "\tInstances: " + getInstances().stream().map(Instance::getInstanceId).reduce((s1, s2) -> s1 + ", " + s2).orElse("[]"));
     }
+
 }
