@@ -1,5 +1,6 @@
 package it.polimi.ramses.plan.domain;
 
+import com.google.ortools.linearsolver.*;
 import it.polimi.ramses.knowledge.domain.Modules;
 import it.polimi.ramses.knowledge.domain.adaptation.options.*;
 import it.polimi.ramses.knowledge.domain.adaptation.specifications.QoSSpecification;
@@ -54,7 +55,7 @@ public class PlanService {
                             log.debug("Proposed option: {}", option.getDescription());
                             if (option.getClass().equals(ChangeLoadBalancerWeightsOption.class)) {
                                 ChangeLoadBalancerWeightsOption changeLoadBalancerWeightsOption = (ChangeLoadBalancerWeightsOption) option;
-                                /*Map<String, Double> newWeights = handleChangeLoadBalancerWeights(servicesMap.get(option.getServiceId()));
+                                Map<String, Double> newWeights = handleChangeLoadBalancerWeights(servicesMap.get(option.getServiceId()));
                                 if (newWeights != null) { // If it's null it means that the problem has no solution
                                     List<String> instancesToShutdownIds = new LinkedList<>();
                                     newWeights.forEach((instanceId, weight) -> {
@@ -65,7 +66,7 @@ public class PlanService {
                                     instancesToShutdownIds.forEach(newWeights::remove);
                                     changeLoadBalancerWeightsOption.setNewWeights(newWeights);
                                     changeLoadBalancerWeightsOption.setInstancesToShutdownIds(instancesToShutdownIds);
-                                }*/
+                                }
                             }
                             if (option.getClass().equals(AddInstanceOption.class))
                                 handleAddInstance((AddInstanceOption) option, servicesMap.get(option.getServiceId()));
@@ -182,7 +183,7 @@ public class PlanService {
         return addInstanceOption;
     }
 
-    /*public Map<String, Double> handleChangeLoadBalancerWeights(Service service) {
+    public Map<String, Double> handleChangeLoadBalancerWeights(Service service) {
         Map<String, Double> previousWeights = service.getLoadBalancerWeights();
         double shutdownThreshold = service.getCurrentImplementation().getInstanceLoadShutdownThreshold() / service.getInstances().size();
         double defaultWeight = 1.0 / service.getInstances().size();
@@ -320,7 +321,7 @@ public class PlanService {
         log.debug(sb.toString());
 
         return newWeights;
-    }*/
+    }
 
     public ChangeImplementationOption handleChangeImplementation(ChangeImplementationOption changeImplementationOption, Service service){
         String bestImplementationId = null;

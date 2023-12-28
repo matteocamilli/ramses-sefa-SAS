@@ -32,14 +32,14 @@ public class PlanApplication {
         else
             throw new RuntimeException("Unsupported OS: "+os);
         try {
-            //System.load(ResourceUtils.getFile("classpath:"+filename1).getAbsolutePath());
-            //System.load(ResourceUtils.getFile("classpath:"+filename2).getAbsolutePath());
+            System.load(ResourceUtils.getFile("classpath:"+filename1).getAbsolutePath());
+            System.load(ResourceUtils.getFile("classpath:"+filename2).getAbsolutePath());
         } catch (Exception e) {
             try {
                 String libDir = args[0];
                 System.out.println("Loading OR-Tools from "+libDir);
-                //System.load(libDir+"/"+filename1);
-                //System.load(libDir+"/"+filename2);
+                System.load(libDir+"/"+filename1);
+                System.load(libDir+"/"+filename2);
             } catch (Exception e2) {
                 throw new RuntimeException("Error loading or-tools libraries", e2);
             }
